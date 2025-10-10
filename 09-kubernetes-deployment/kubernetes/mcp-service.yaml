@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server-service
+  labels:
+    app: mcp-server
+spec:
+  type: ClusterIP
+  selector:
+    app: mcp-server
+  ports:
+  - port: 9000
+    targetPort: 9000
+    protocol: TCP
+    name: mcp
