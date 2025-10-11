@@ -460,7 +460,7 @@ A pod for the Agent with its API
 A pod for the MCP Server
 
 ```bash
-cd cd 12-agent-with-api-openshift
+cd 12-agent-with-api-openshift
 ```
 
 ```bash
@@ -511,7 +511,7 @@ mcp-inspector
 
 ![MCP Inspector](./images/12-mcp-inspector.png)
 
-Cntrl-C to kill the podman container
+Cntrl-C to kill the podman containers
 
 ```bash
 podman ps
@@ -526,6 +526,11 @@ kubectl apply -f mcp-server-math-kubernetes/mcp-server-service.yaml
 ```
 
 And if using OpenShift, use routes. If using vanilla Kubernetes, ask your sys admin for how to configure ingress
+
+```bash
+oc get pods
+```
+
 
 ```bash 
 kubectl apply -f mcp-server-math-kubernetes/mcp-server-route.yaml
