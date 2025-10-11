@@ -304,3 +304,87 @@ mcp-inspector
 
 ![MCP Inspector](./images/mcp-inspector-fastmcp-weather-gov-1.png)
 
+## Example 8: MCP wrapper for custom API
+
+```bash
+pip install -r 08-fastapi-mcp-wrapper/requirements.txt
+```
+
+
+```bash
+python 08-fastapi-mcp-wrapper/fastapi_app.py
+```
+
+This to see if it compiles, there is no output
+
+```bash
+python 08-fastapi-mcp-wrapper/api-wrapper-stdio.py
+```
+
+control-c a few times
+
+```bash
+mcp-inspector python 08-fastapi-mcp-wrapper/api-wrapper-stdio.py
+```
+
+FastMCP version
+
+Make sure the API is up
+
+```bash
+python 08-fastapi-mcp-wrapper/fastapi_app.py
+```
+
+Start the MCP server
+
+```bash
+python 08-fastapi-mcp-wrapper/api-wrapper-fastmcp.py
+```
+
+```bash
+mcp-inspector
+```
+
+![MCP Inspector](./images/mcp-inspector-fastmcp-api-wrapper.png)
+
+## Example 9: Deploy to Kubernetes
+
+```bash
+cd 09-kubernetes-deployment
+```
+
+```bash
+oc new-project mcp-servers
+```
+
+```bash
+./deploy.sh
+```
+
+```bash
+mcp-inspector
+```
+
+![MCP Inspector](./images/09-mcp-inspector.png)
+
+
+## Example 10: Basic Agent
+
+
+```bash
+python 10-basic-langgraph-agent/mcp-server-math/mcp-server.py
+```
+
+Use mcp-inspector to test 
+
+```bash
+pip install -r 10-basic-langgraph-agent/requirements.txt
+```
+
+```bash
+export OPENAI_API_KEY=sk-proj-ghs22s90wrow0-more-stuff
+```
+
+```bash
+
+```

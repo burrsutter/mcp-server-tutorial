@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-MCP Server Wrapper for FastAPI - Kubernetes Version (FastMCP + HTTP)
-Wraps the Task Manager FastAPI application with MCP protocol via HTTP.
+Example 8: MCP Server Wrapper for FastAPI (FastMCP + HTTP)
+Wraps the Task Manager FastAPI application with MCP protocol.
+Makes REST API accessible through MCP tools via HTTP on port 9004.
 """
 
 import json
 from typing import Optional
 import httpx
 from fastmcp import FastMCP
-import os
 
 # Create the FastMCP server instance
 mcp = FastMCP("task-manager-mcp")
 
-# Configuration - Use Kubernetes service name
-API_BASE_URL = os.environ.get("FASTAPI_URL", "http://fastapi-service:8000")
+# Configuration
+API_BASE_URL = "http://localhost:8000"
 http_client: Optional[httpx.AsyncClient] = None
 
 
@@ -194,5 +194,5 @@ async def get_stats() -> str:
 
 if __name__ == "__main__":
     # Run the server with HTTP transport on port 9004
-    # Bind to 0.0.0.0 to accept connections from Kubernetes service
-    mcp.run(transport="http", host="0.0.0.0", port=9004)
+    # Configure to expose REST endpoints at /mcp/v1/
+    mcp.run(transport="http", port=9004, path="/mcp/v1/")

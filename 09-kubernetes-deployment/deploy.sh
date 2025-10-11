@@ -27,61 +27,48 @@ echo "🔨 Building Docker images..."
 echo ""
 
 echo "Building FastAPI image..."
-docker build -t task-manager-fastapi:latest ./fastapi-app/
+# docker build -t task-manager-fastapi:latest ./fastapi-app/
+podman build --arch amd64 --os linux -t quay.io/burrsutter/task-manager-fastapi:latest ./fastapi-app/
+podman push quay.io/burrsutter/task-manager-fastapi:latest
 
 echo "Building MCP Server image..."
-docker build -t task-manager-mcp:latest ./mcp-server/
+# docker build -t task-manager-mcp:latest ./mcp-server/
+podman build --arch amd64 --os linux -t quay.io/burrsutter/task-manager-mcp:latest ./mcp-server/
+podman push quay.io/burrsutter/task-manager-mcp:latest
 
-# Load images into kind if using kind
-if [ "$USING_KIND" = true ]; then
-    echo ""
-    echo "📦 Loading images into kind cluster..."
-    kind load docker-image task-manager-fastapi:latest
-    kind load docker-image task-manager-mcp:latest
-fi
-
-# Apply Kubernetes manifests
-echo ""
-echo "☸️  Applying Kubernetes manifests..."
-echo ""
 
 echo "Deploying FastAPI..."
-kubectl apply -f kubernetes/fastapi-deployment.yaml
-kubectl apply -f kubernetes/fastapi-service.yaml
+oc apply -f openshift/fastapi-deployment.yaml
+oc apply -f openshift/fastapi-service.yaml
+oc apply -f openshift/fastapi-route.yaml
 
 echo "Deploying MCP Server..."
-kubectl apply -f kubernetes/mcp-deployment.yaml
-kubectl apply -f kubernetes/mcp-service.yaml
+oc apply -f openshift/mcp-server-deployment.yaml
+oc apply -f openshift/mcp-server-service.yaml
+oc apply -f openshift/mcp-server-route.yaml
 
 # Wait for deployments
 echo ""
 echo "⏳ Waiting for deployments to be ready..."
-kubectl wait --for=condition=available --timeout=120s deployment/fastapi-deployment
-kubectl wait --for=condition=available --timeout=120s deployment/mcp-server-deployment
+oc wait --for=condition=available --timeout=120s deployment/fastapi-deployment
+oc wait --for=condition=available --timeout=120s deployment/mcp-server-deployment
 
 # Display status
 echo ""
 echo "✅ Deployment complete!"
 echo ""
 echo "📊 Deployment Status:"
-kubectl get deployments
+oc get deployments
 echo ""
 echo "🔌 Services:"
-kubectl get services
+oc get services
 echo ""
 echo "📦 Pods:"
-kubectl get pods
+oc get pods
 echo ""
 
 # Get FastAPI URL
-echo "🌐 To access the FastAPI service:"
-echo "   Run: kubectl port-forward service/fastapi-service 8000:8000"
-echo "   Then visit: http://localhost:8000"
-echo ""
-echo "📋 To view logs:"
-echo "   FastAPI: kubectl logs -f deployment/fastapi-deployment"
-echo "   MCP Server: kubectl logs -f deployment/mcp-server-deployment"
-echo ""
-echo "🧹 To cleanup:"
-echo "   Run: ./cleanup.sh"
+echo "🌐 To access the MCP service:"
+export MCP_URL=https://$(oc get routes -l app=mcp-server -o jsonpath="{range .items[*]}{.status.ingress[0].host}{end}")
+echo "   " $MCP_URL
 echo ""

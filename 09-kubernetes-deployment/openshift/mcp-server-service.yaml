@@ -9,7 +9,7 @@ spec:
   selector:
     app: mcp-server
   ports:
-  - port: 9000
-    targetPort: 9000
+  - port: 9004
+    targetPort: 9004
     protocol: TCP
-    name: mcp
+    name: http

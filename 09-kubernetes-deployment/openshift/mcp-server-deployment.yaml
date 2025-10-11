@@ -16,8 +16,12 @@ spec:
     spec:
       containers:
       - name: mcp-server
-        image: task-manager-mcp:latest
-        imagePullPolicy: Never  # For local development
+        image: quay.io/burrsutter/task-manager-mcp:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9004
+          name: http
+          protocol: TCP
         env:
         - name: FASTAPI_URL
           value: "http://fastapi-service:8000"
