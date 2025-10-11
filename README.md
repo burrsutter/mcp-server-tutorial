@@ -359,9 +359,34 @@ cd 09-kubernetes-deployment
 oc new-project mcp-servers-basic
 ```
 
+or
+
+```bash
+kubectl create namespace mcp-servers-basic
+kubens mcp-servers-basic
+```
+
+kubens comes from ` brew install kubectx`, it tweaks your KUBECONFIG file.
+
+```
+kubectl config view | grep -B 3 -A 3 "mcp-servers-basic"
+
+~/.kube/config 
+```
+
+This script assumes the creation of a public container image at quay.io therefore no pull-secret setup required on the Kubernetes side of things.
+
 ```bash
 ./deploy.sh
 ```
+
+You will need the route (or ingress if using vanilla kubernetes)
+
+```bash
+export MCP_URL=https://$(oc get routes -l app=mcp-server -o jsonpath="{range .items[*]}{.status.ingress[0].host}{end}")/mcp
+echo $MCP_URL
+```
+
 
 ```bash
 mcp-inspector
@@ -434,3 +459,221 @@ You can `.env.example .env` and change the URL to the MCP server along with the 
 A pod for the Agent with its API
 A pod for the MCP Server
 
+```bash
+cd cd 12-agent-with-api-openshift
+```
+
+```bash
+oc new-project agent-with-mcp
+```
+
+Using `podman` and quay.io instead of `docker` and docker.io. Pick your favorite and make it so you can build and push images to a known location.   Note: quay.io marks your container image private by default, you will wish to dig through the settings and make it public.  See `./images/quayio-private-to-public.png` for a screenshot.
+
+
+```bash
+brew install podman 
+podman machine start
+
+podman login quay.io
+```
+
+### MCP Server as a pod
+
+```bash
+podman build --arch amd64 --os linux -t quay.io/burrsutter/mcp-server-math:1.0.0 ./mcp-server-math
+podman push quay.io/burrsutter/mcp-server-math:1.0.0
+```
+
+
+Test the container image for the MCP server
+
+```bash
+podman run \
+  -p 9005:9005 \
+  quay.io/burrsutter/mcp-server-math:1.0.0
+```
+
+Test connectvitiy with `curl`
+
+```bash
+curl -N -H "Accept: text/event-stream" http://localhost:9005/mcp
+```
+
+The fact that you got an error message "Missing session ID" instead of connection refused means the server IS running and responding! The error is expected because streamable HTTP MCP requires session establishment.
+
+It might respond with `curl: (7) Failed to connect to localhost port 9005 after 0 ms: Couldn't connect to server` in which case curl did not find something running on port 9005
+
+Test connectivity with `mcp-inspector`
+
+```bash
+mcp-inspector
+```
+
+![MCP Inspector](./images/12-mcp-inspector.png)
+
+Cntrl-C to kill the podman container
+
+```bash
+podman ps
+CONTAINER ID  IMAGE       COMMAND     CREATED     STATUS      PORTS       NAMES
+```
+
+Deploy to Kubernetes/OpenShift.  You should be within the agent-with-mcp context.  You can check that with `oc project` or `kubectx` commands.
+
+```bash
+kubectl apply -f mcp-server-math-kubernetes/mcp-server-deployment.yaml
+kubectl apply -f mcp-server-math-kubernetes/mcp-server-service.yaml
+```
+
+And if using OpenShift, use routes. If using vanilla Kubernetes, ask your sys admin for how to configure ingress
+
+```bash 
+kubectl apply -f mcp-server-math-kubernetes/mcp-server-route.yaml
+```
+
+```bash
+export MCP_URL=https://$(oc get routes -l app=mcp-server -o jsonpath="{range .items[*]}{.status.ingress[0].host}{end}")/mcp
+echo $MCP_URL
+```
+
+Note: the `https` beginning and the `mcp` ending
+
+Test with `mcp-inspector` to see that you have connectivity. 
+
+Note: you might NOT want a public route to your mcp servers, especially ones with no security authN/authZ as this one is right now.  
+
+
+### Agent with API as a pod
+
+```bash
+podman build --arch amd64 --os linux -t quay.io/burrsutter/my-langgraph-agent:1.0.0 ./my-langgraph-agent
+podman push quay.io/burrsutter/my-langgraph-agent:1.0.0
+```
+
+Test as a local container, first make sure you are running the mcp server
+
+```bash
+podman run -p 9005:9005 quay.io/burrsutter/mcp-server-math:1.0.0
+```
+
+```bash
+podman run -p 8000:8000 \
+    -e MCP_SERVER_URL=http://host.containers.internal:9005/mcp \
+    -e OPENAI_API_KEY=$OPENAI_API_KEY \
+    quay.io/burrsutter/my-langgraph-agent:1.0.0
+```
+
+Test via `curl`
+
+```bash
+curl -X POST http://localhost:8000/add \
+    -H "Content-Type: application/json" \
+    -d '{"a": 2.0, "b": 3.0}'
+```
+
+and
+
+```bash
+curl -sS -X POST http://localhost:8000/add \
+    -H "Content-Type: application/json" \
+    -d '{
+      "a": 42.5,
+      "b": 57.5
+    }' | jq
+```
+
+```
+{
+  "result": 100.0,
+  "query": "Use the add tool to add 42.5 and 57.5",
+  "agent_response": "The result of adding 42.5 and 57.5 is 100.0."
+}
+```
+
+Deploy to Kubernetes/OpenShift.  You should be within the agent-with-mcp context.  You can check that with `oc project` or `kubectx` commands.
+
+Update the openai-secret.yaml with the appropriate key. 
+
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openai-secret
+type: Opaque
+stringData:
+  api-key: "sk-proj-g2n-blah-blah"
+```
+
+```bash
+kubectl apply -f my-langgraph-agent-kubernetes/openai-secret.yaml
+```
+
+```bash
+kubectl apply -f my-langgraph-agent-kubernetes/fastapi-langgraph-deployment.yaml
+```
+
+The `health` endpoint also checks to see if the mcp server is available which means you can get crashloops/errors while it is trying to make the connection.  
+
+```bash
+kubectl get pods
+NAME                                             READY   STATUS    RESTARTS   AGE
+mcp-server-deployment-58b48b8fd4-77dk9           1/1     Running   0          47m
+my-langgraph-agent-deployment-86cccbc894-64d6s   1/1     Running   0          3m47s
+```
+
+Look for two happy pods where restarts are 0
+
+```bash
+kubectl apply -f my-langgraph-agent-kubernetes/fastapi-langgraph-service.yaml
+```
+
+```bash
+kubectl get services
+NAME                         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+mcp-server-service           ClusterIP   172.30.117.54   <none>        9005/TCP   47m
+my-langgraph-agent-service   ClusterIP   172.30.139.88   <none>        8000/TCP   3s
+```
+
+And if using OpenShift, use routes. If using vanilla Kubernetes, ask your sys admin for how to configure ingress
+
+```bash 
+kubectl apply -f my-langgraph-agent-kubernetes/fastapi-langgraph-route.yaml
+```
+
+```bash
+kubectl get routes
+```
+
+```bash
+export AGENT_URL=https://$(oc get routes -l app=my-langgraph-agent -o jsonpath="{range .items[*]}{.status.ingress[0].host}{end}")
+echo $AGENT_URL
+```
+
+```bash
+curl -X POST $AGENT_URL/add \
+    -H "Content-Type: application/json" \
+    -d '{"a": 2.0, "b": 3.0}'
+```
+
+```bash
+curl -sS -X POST $AGENT_URL/add \
+    -H "Content-Type: application/json" \
+    -d '{
+      "a": 42.5,
+      "b": 57.5
+    }' | jq
+```
+
+```
+{
+  "result": 100.0,
+  "query": "Use the add tool to add 42.5 and 57.5",
+  "agent_response": "The result of adding 42.5 and 57.5 is 100.0."
+}
+```
+
+And if you are monitoring the pod logs you will see something like:
+
+```
+mcp-server-deployment-58b48b8fd4-77dk9 mcp-server Add: 42.5 + 57.5 = 100.0
+```

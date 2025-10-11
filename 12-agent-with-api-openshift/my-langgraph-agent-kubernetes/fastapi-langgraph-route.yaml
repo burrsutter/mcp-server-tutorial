@@ -1,0 +1,15 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: my-langgraph-agent-route
+  labels:
+    app: my-langgraph-agent
+spec:
+  to:
+    kind: Service
+    name: my-langgraph-agent-service
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

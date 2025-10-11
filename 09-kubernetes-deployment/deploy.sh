@@ -69,6 +69,6 @@ echo ""
 
 # Get FastAPI URL
 echo "🌐 To access the MCP service:"
-export MCP_URL=https://$(oc get routes -l app=mcp-server -o jsonpath="{range .items[*]}{.status.ingress[0].host}{end}")
+export MCP_URL=https://$(oc get routes -l app=mcp-server -o jsonpath="{range .items[*]}{.status.ingress[0].host}{end}")/mcp
 echo "   " $MCP_URL
 echo ""
