@@ -349,12 +349,14 @@ mcp-inspector
 
 ## Example 9: Deploy to Kubernetes
 
+This example includes a FastAPI endpoint that interacts with the MCP Server.  No LLM involved.
+
 ```bash
 cd 09-kubernetes-deployment
 ```
 
 ```bash
-oc new-project mcp-servers
+oc new-project mcp-servers-basic
 ```
 
 ```bash
@@ -386,5 +388,49 @@ export OPENAI_API_KEY=sk-proj-ghs22s90wrow0-more-stuff
 ```
 
 ```bash
-
+python 10-basic-langgraph-agent/my-langgraph-agent/langgraph_agent_add.py
 ```
+
+## Example 11: LangGraph Agent exposed via FastAPI
+
+```bash
+export OPENAI_API_KEY=sk-proj-ghs22s90wrow0-more-stuff
+```
+
+
+```bash
+pip install -r 11-agent-with-api/requirements.txt
+```
+This assumes you also `pip install` the requirements.txt in the root and you are using `python3 -m venv .venv`
+
+Run the MCP Server
+
+```bash
+python 11-agent-with-api/mcp-server-math/mcp-server.py
+```
+
+```bash
+python 11-agent-with-api/my-l
+```
+
+```bash
+python 11-agent-with-api/my-langgraph-agent/fastapi_wrapper_langgraph.py
+```
+
+```bash
+curl http://localhost:8000/health
+```
+
+```bash
+curl -X POST http://localhost:8000/add \
+    -H "Content-Type: application/json" \
+    -d '{"a": 2.0, "b": 3.0}'
+```
+
+You can `.env.example .env` and change the URL to the MCP server along with the port for FastAPI
+
+## Example 12: Agent + API + MCP Server + OpenShift
+
+A pod for the Agent with its API
+A pod for the MCP Server
+
