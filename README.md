@@ -682,3 +682,8 @@ And if you are monitoring the pod logs you will see something like:
 ```
 mcp-server-deployment-58b48b8fd4-77dk9 mcp-server Add: 42.5 + 57.5 = 100.0
 ```
+
+## Example 13: Claude Agent SDK 
+
+Using the FantaCo MCP servers + endpoints.
+
